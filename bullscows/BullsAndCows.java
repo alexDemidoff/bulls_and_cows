@@ -1,33 +1,57 @@
 package bullscows;
 
-import exceptions.WrongLengthException;
-
-import java.util.ArrayList;
 import java.util.Random;
 import java.util.Scanner;
 
 public class BullsAndCows {
 
     private static final Scanner scanner = new Scanner(System.in);
+    private final int SECRET_CODE_MAX_LENGTH = 36;
+    private final int SECRET_CODE_MIN_LENGTH = 1;
+
     private String secretCode;
+    private int secretCodeLength;
+    private int numberOfPossibleSymbols;
 
-    public void initialize() {
-        System.out.println("Please, enter the secret code's length:");
-
-        boolean isCorrect = false;
+    public void readSecretCodeLength() {
         do {
-            int length = 0;
-            try {
-                length = Integer.parseInt(scanner.nextLine());
-                secretCode = generateSecretCode(length);
-                isCorrect = true;
-            } catch (WrongLengthException e) {
-                System.out.printf("Error: can't generate a secret number with a length of %d because there aren't enough unique digits.\n", length);
-            }
-        } while (!isCorrect);
+            System.out.println("Please, enter the secret code's length:");
+            secretCodeLength = Integer.parseInt(scanner.nextLine());
+        } while (secretCodeLength < SECRET_CODE_MIN_LENGTH || secretCodeLength > SECRET_CODE_MAX_LENGTH);
     }
 
-    public void getUserInput() {
+    public void readNumberOfPossibleSymbols() {
+        do {
+            System.out.println("Input the number of possible symbols in the code:");
+
+            numberOfPossibleSymbols = Integer.parseInt(scanner.nextLine());
+
+        } while (numberOfPossibleSymbols < secretCodeLength || numberOfPossibleSymbols > SECRET_CODE_MAX_LENGTH);
+    }
+
+    public void prepareSecretCode() {
+        secretCode = generateSecretCode(secretCodeLength, numberOfPossibleSymbols);
+
+        int leftNumberRange = 0;
+        int rightNumberRange = numberOfPossibleSymbols > 10 ? 9 : numberOfPossibleSymbols - 1;
+
+        String info;
+        if (numberOfPossibleSymbols <= 10) {
+            info = String.format("(%d-%d)", leftNumberRange, rightNumberRange);
+        } else {
+            char leftCharacterRange = 'a';
+            char rightCharacterRange = (char) ('a' + numberOfPossibleSymbols - 11);
+
+            info = String.format("(%d-%d), (%c-%c)", leftNumberRange, rightNumberRange,
+                    leftCharacterRange, rightCharacterRange);
+        }
+
+        String hiddenSecretCode = "*".repeat(secretCodeLength);
+
+        System.out.printf("The secret code is prepared: %s %s\n", hiddenSecretCode, info);
+    }
+
+    public void readUserGuess() {
         System.out.println("Okay, let's start a game!");
 
         int turn = 1;
@@ -42,96 +66,35 @@ public class BullsAndCows {
         System.out.println("Congratulations! You guessed the secret code.");
     }
 
-
-    /*
-    private String generateSecretCode(int length) throws WrongLengthException {
-        if (length > 10) {
-            throw new WrongLengthException();
-        }
-
-        ArrayList<Character> res = new ArrayList<>();
-        char[] randomNumberDigits;
-        long randomNumber;
-        int randomNumberLength;
-        boolean isFirstDigit;
-
-        do {
-            randomNumber = System.nanoTime();
-            randomNumberDigits = String.valueOf(randomNumber).toCharArray();
-            isFirstDigit = true;
-            res.clear();
-
-            int i = randomNumberDigits.length - 1;
-            randomNumberLength = 0;
-
-            while (randomNumberLength != length && i >= 0) {
-                if (isFirstDigit) {
-                    if (randomNumberDigits[i] != '0') {
-                        res.add(randomNumberDigits[i]);
-                        isFirstDigit = false;
-                        randomNumberLength++;
-                    }
-                } else {
-                    if (!res.contains(randomNumberDigits[i])) {
-                        res.add(randomNumberDigits[i]);
-                        randomNumberLength++;
-                    }
-                }
-                i--;
-            }
-        } while (randomNumberLength != length);
-
-        StringBuilder sb = new StringBuilder();
-
-        for (char c : res) {
-            sb.append(c);
-        }
-
-        return sb.toString();
-
-    }
-
-     */
-
-    private String generateSecretCode(int length) throws WrongLengthException {
-        if (length > 10) {
-            throw new WrongLengthException();
-        }
-
-        int[] digits = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    private String generateSecretCode(int length, int numberOfPossibleSymbols) {
         Random r = new Random();
         StringBuilder randomNumber = new StringBuilder();
 
-        int low = 0;
-        int high = 10;
-        int randomIndex;
-        boolean isFirstDigit = true;
+        char[] digits = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+                'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'g', 'k', 'l',
+                'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'};
 
-        while (low != length) {
-            if (isFirstDigit) {
-                randomIndex = r.nextInt(high - 1) + 1;
-                isFirstDigit = false;
-            } else {
-                randomIndex = r.nextInt(high - low) + low;
-            }
+        int leftBorder = 0;
+        int rightBorder = numberOfPossibleSymbols;
+        int randomIndex;
+
+        while (leftBorder != length) {
+            randomIndex = r.nextInt(rightBorder - leftBorder) + leftBorder;
 
             randomNumber.append(digits[randomIndex]);
-            int buf = digits[randomIndex];
-            digits[randomIndex] = digits[low];
-            digits[low] = buf;
+            char buf = digits[randomIndex];
+            digits[randomIndex] = digits[leftBorder];
+            digits[leftBorder] = buf;
 
-            low++;
+            leftBorder++;
         }
 
         return randomNumber.toString();
     }
 
     private void showGrade(String secretCode, String userGuess) {
-        int bullCount = 0;
-        int cowCount = 0;
-
-        bullCount = getBullCount(secretCode, userGuess);
-        cowCount = getCowCount(secretCode, userGuess);
+        int bullCount = getBullCount(secretCode, userGuess);
+        int cowCount = getCowCount(secretCode, userGuess);
 
         if (bullCount == 0 && cowCount == 0) {
             System.out.println("Grade: None.");
