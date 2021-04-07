@@ -3,7 +3,7 @@ package bullscows;
 public class Game {
 
     public static void start() {
-        BullsAndCows bullsAndCows = new BullsAndCows();
+        BullsAndCows bullsAndCows = BullsAndCows.initialize();
 
         bullsAndCows.readSecretCodeLength();
         bullsAndCows.readNumberOfPossibleSymbols();

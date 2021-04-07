@@ -6,64 +6,100 @@ import java.util.Scanner;
 public class BullsAndCows {
 
     private static final Scanner scanner = new Scanner(System.in);
-    private final int SECRET_CODE_MAX_LENGTH = 36;
-    private final int SECRET_CODE_MIN_LENGTH = 1;
+    private final int MAX_NUMBER_OF_POSSIBLE_SYMBOLS = 36;
+
+    private GameStatus currentStatus;
 
     private String secretCode;
     private int secretCodeLength;
     private int numberOfPossibleSymbols;
 
+    private BullsAndCows() {
+        currentStatus = GameStatus.SUCCESS;
+    }
+
+    public static BullsAndCows initialize() {
+        return new BullsAndCows();
+    }
+
     public void readSecretCodeLength() {
-        do {
-            System.out.println("Please, enter the secret code's length:");
-            secretCodeLength = Integer.parseInt(scanner.nextLine());
-        } while (secretCodeLength < SECRET_CODE_MIN_LENGTH || secretCodeLength > SECRET_CODE_MAX_LENGTH);
+        System.out.println("Input the length of the secret code:");
+
+        String secretCodeLengthStr = scanner.nextLine();
+        if (!secretCodeLengthStr.matches("^([0-9]|[1-9][0-9]+)$")) {
+            System.out.printf("Error: \"%s\" isn't a valid number.\n", secretCodeLengthStr);
+            currentStatus = GameStatus.ERROR;
+        } else if (!secretCodeLengthStr.matches("^([1-9]|[1-3][0-6])$")) {
+            System.out.println("Error: maximum length of the secret code is 36 and minimum one is 1.");
+            currentStatus = GameStatus.ERROR;
+        }
+
+        if (currentStatus == GameStatus.SUCCESS) {
+            secretCodeLength = Integer.parseInt(secretCodeLengthStr);
+        }
     }
 
     public void readNumberOfPossibleSymbols() {
-        do {
+        if (currentStatus == GameStatus.SUCCESS) {
             System.out.println("Input the number of possible symbols in the code:");
 
-            numberOfPossibleSymbols = Integer.parseInt(scanner.nextLine());
+            String numberOfPossibleSymbolsStr = scanner.nextLine();
+            if (!numberOfPossibleSymbolsStr.matches("^([1-9]|[1-9][0-9]+)$")) {
+                System.out.printf("Error: \"%s\" isn't a valid number.\n", numberOfPossibleSymbolsStr);
+                currentStatus = GameStatus.ERROR;
+            } else if (numberOfPossibleSymbolsStr.matches("^([3-9][7-9]|[4-9][0-9]|[1-9]+[0-9]+[0-9]+)$")) {
+                System.out.printf("Error: maximum number of possible symbols in the code is %d (0-9, a-z).\n", MAX_NUMBER_OF_POSSIBLE_SYMBOLS);
+                currentStatus = GameStatus.ERROR;
+            } else {
+                numberOfPossibleSymbols = Integer.parseInt(numberOfPossibleSymbolsStr);
 
-        } while (numberOfPossibleSymbols < secretCodeLength || numberOfPossibleSymbols > SECRET_CODE_MAX_LENGTH);
+                if (numberOfPossibleSymbols < secretCodeLength) {
+                    System.out.printf("Error: it's not possible to generate a code with a length of %d with %s unique symbols.\n", secretCodeLength, numberOfPossibleSymbolsStr);
+                    currentStatus = GameStatus.ERROR;
+                }
+            }
+        }
     }
 
     public void prepareSecretCode() {
-        secretCode = generateSecretCode(secretCodeLength, numberOfPossibleSymbols);
+        if (currentStatus == GameStatus.SUCCESS) {
+            secretCode = generateSecretCode(secretCodeLength, numberOfPossibleSymbols);
 
-        int leftNumberRange = 0;
-        int rightNumberRange = numberOfPossibleSymbols > 10 ? 9 : numberOfPossibleSymbols - 1;
+            int leftNumberRange = 0;
+            int rightNumberRange = numberOfPossibleSymbols > 10 ? 9 : numberOfPossibleSymbols - 1;
 
-        String info;
-        if (numberOfPossibleSymbols <= 10) {
-            info = String.format("(%d-%d)", leftNumberRange, rightNumberRange);
-        } else {
-            char leftCharacterRange = 'a';
-            char rightCharacterRange = (char) ('a' + numberOfPossibleSymbols - 11);
+            String info;
+            if (numberOfPossibleSymbols <= 10) {
+                info = String.format("(%d-%d)", leftNumberRange, rightNumberRange);
+            } else {
+                char leftCharacterRange = 'a';
+                char rightCharacterRange = (char) ('a' + numberOfPossibleSymbols - 11);
 
-            info = String.format("(%d-%d), (%c-%c)", leftNumberRange, rightNumberRange,
-                    leftCharacterRange, rightCharacterRange);
+                info = String.format("(%d-%d), (%c-%c)", leftNumberRange, rightNumberRange,
+                        leftCharacterRange, rightCharacterRange);
+            }
+
+            String hiddenSecretCode = "*".repeat(secretCodeLength);
+
+            System.out.printf("The secret code is prepared: %s %s\n", hiddenSecretCode, info);
         }
-
-        String hiddenSecretCode = "*".repeat(secretCodeLength);
-
-        System.out.printf("The secret code is prepared: %s %s\n", hiddenSecretCode, info);
     }
 
     public void readUserGuess() {
-        System.out.println("Okay, let's start a game!");
+        if (currentStatus == GameStatus.SUCCESS) {
+            System.out.println("Okay, let's start a game!");
 
-        int turn = 1;
-        String userGuess;
-        do {
-            System.out.printf("Turn %d:\n", turn);
-            userGuess = scanner.nextLine();
-            showGrade(secretCode, userGuess);
-            turn++;
-        } while (getBullCount(secretCode, userGuess) != secretCode.length());
+            int turn = 1;
+            String userGuess;
+            do {
+                System.out.printf("Turn %d:\n", turn);
+                userGuess = scanner.nextLine();
+                showGrade(secretCode, userGuess);
+                turn++;
+            } while (getBullCount(secretCode, userGuess) != secretCodeLength);
 
-        System.out.println("Congratulations! You guessed the secret code.");
+            System.out.println("Congratulations! You guessed the secret code.");
+        }
     }
 
     private String generateSecretCode(int length, int numberOfPossibleSymbols) {
